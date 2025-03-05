@@ -1,0 +1,210 @@
+import pyttsx3
+import speech_recognition as sr
+import datetime
+import wikipedia
+import webbrowser
+import os
+import smtplib
+import requests
+import pyjokes
+import time
+import sys
+import ctypes
+import psutil
+import json
+import pyautogui
+import pywhatkit as kit
+import random
+import clipboard
+
+# Initialize the speech engine
+engine = pyttsx3.init('sapi5')
+voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[0].id)
+engine.setProperty('rate', 175)  # Adjust speed
+
+def speak(audio):
+    engine.say(audio)
+    engine.runAndWait()
+
+def wishMe():
+    hour = int(datetime.datetime.now().hour)
+    if 0 <= hour < 12:
+        speak("Good Morning!")
+    elif 12 <= hour < 18:
+        speak("Good Afternoon!")
+    else:
+        speak("Good Evening!")
+    speak("I am Gajundar, your assistant. How can I assist you?")
+
+def takeCommand():
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        r.pause_threshold = 1.5
+        audio = r.listen(source)
+    try:
+        print("Recognizing...")
+        query = r.recognize_google(audio, language='en-in')
+        print(f"User said: {query}\n")
+    except Exception:
+        print("Say that again please...")
+        return "None"
+    return query.lower()
+
+def getNews():
+    url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=your_news_api_key"
+    response = requests.get(url).json()
+    articles = response['articles'][:5]
+    for article in articles:
+        speak(article['title'])
+
+def getWeather():
+    api_key = "your_openweather_api_key"
+    city = "your_city_name"
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+    response = requests.get(url).json()
+    
+    if response.get("cod") != 200:
+        speak("I couldn't fetch the weather. Please check your city name or API key.")
+        return
+    
+    weather = response.get("main", {})
+    temperature = weather.get("temp", "N/A")
+    pressure = weather.get("pressure", "N/A")
+    humidity = weather.get("humidity", "N/A")
+    
+    weather_description = response.get("weather", [{}])[0].get("description", "No description available.")
+    
+    speak(f"The temperature in {city} is {temperature} degrees Celsius with {weather_description}. "
+          f"The pressure is {pressure} hPa and the humidity is {humidity} percent.")
+
+def convertCurrency(amount, from_currency, to_currency):
+    url = f"https://api.exchangerate-api.com/v4/latest/{from_currency.upper()}"
+    response = requests.get(url).json()
+    rate = response['rates'][to_currency.upper()]
+    converted_amount = amount * rate
+    speak(f"{amount} {from_currency} is equal to {converted_amount:.2f} {to_currency}")
+
+def takeScreenshot():
+    screenshot = pyautogui.screenshot()
+    screenshot.save("screenshot.png")
+    speak("Screenshot taken and saved as screenshot.png")
+
+def readClipboard():
+    text = clipboard.paste()
+    speak(f"Clipboard content is: {text}")
+
+def solveMath(expression):
+    try:
+        result = eval(expression)
+        speak(f"The result is {result}")
+    except Exception:
+        speak("Sorry, I couldn't solve that")
+
+def randomFact():
+    facts = [
+        "Honey never spoils.",
+        "Octopuses have three hearts.",
+        "A group of flamingos is called a 'flamboyance'.",
+        "Bananas are berries, but strawberries aren’t."
+    ]
+    speak(random.choice(facts))
+
+def searchWikipedia(query):
+    results = wikipedia.summary(query, sentences=2)
+    speak("According to Wikipedia")
+    speak(results)
+    print(results)
+
+def openWebsite(url):
+    webbrowser.open(url)
+    speak(f"Opening {url}")
+
+def getProgrammingHelp():
+    topics = [
+        "Python, JavaScript, C++, Java",
+        "AI, Machine Learning, Data Science",
+        "Web Development (HTML, CSS, React, Flask, Django)",
+        "Software Development & Debugging",
+        "Automation & Chatbots"
+    ]
+    speak("I can help you with programming topics such as:")
+    for topic in topics:
+        speak(topic)
+
+def getMathHelp():
+    topics = [
+        "Calculus, Linear Algebra, Discrete Math",
+        "Probability, Statistics, Data Analysis",
+        "Algorithms and Problem Solving"
+    ]
+    speak("I can assist with math topics such as:")
+    for topic in topics:
+        speak(topic)
+
+def getGeneralKnowledge():
+    topics = [
+        "History, Geography, and World Affairs",
+        "Computer History & Architecture",
+        "Wikipedia-style explanations on any topic"
+    ]
+    speak("I can provide information on:")
+    for topic in topics:
+        speak(topic)
+
+if __name__ == "__main__":
+    wishMe()
+    while True:
+        query = takeCommand()
+
+        if 'news' in query:
+            getNews()
+        
+        elif 'weather update' in query:
+            getWeather()
+        
+        elif 'convert currency' in query:
+            speak("Please say the amount, source currency, and target currency.")
+            amount = float(takeCommand())
+            speak("Which currency do you want to convert from?")
+            from_currency = takeCommand()
+            speak("Which currency do you want to convert to?")
+            to_currency = takeCommand()
+            convertCurrency(amount, from_currency, to_currency)
+
+        elif 'screenshot' in query:
+            takeScreenshot()
+
+        elif 'clipboard' in query:
+            readClipboard()
+        
+        elif 'solve' in query:
+            speak("Please say the math problem.")
+            problem = takeCommand()
+            solveMath(problem)
+        
+        elif 'fact' in query:
+            randomFact()
+        
+        elif 'wikipedia' in query:
+            searchWikipedia(query.replace("wikipedia", ""))
+        
+        elif 'open' in query:
+            openWebsite(query.replace("open", "").strip())
+        
+        elif 'programming help' in query:
+            getProgrammingHelp()
+        
+        elif 'math help' in query:
+            getMathHelp()
+        
+        elif 'general knowledge' in query:
+            getGeneralKnowledge()
+        
+        elif 'exit' in query:
+            speak("Goodbye! and have a good day and sir please give full marks to my friends.")
+            sys.exit()
+        
+        else:
+            speak("i can't understand. Can you say that again?")
